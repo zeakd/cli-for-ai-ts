@@ -1,0 +1,19 @@
+{
+  "name": "network-cli",
+  "private": true,
+  "type": "module",
+  "description": "gh-lite — a network CLI built with the cli-for-ai core, with fetch injected through context",
+  "bin": {
+    "gh-lite": "./src/cli.ts"
+  },
+  "scripts": {
+    "dev": "node src/cli.ts"
+  },
+  "dependencies": {
+    "cli-for-ai": "workspace:*",
+    "neverthrow": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.4"
+  }
+}

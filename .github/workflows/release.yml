@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the verified package
+        type: boolean
+        default: false
+      version:
+        description: Exact package.json version to verify
+        type: string
+        required: true
+      tag:
+        description: npm distribution tag
+        type: choice
+        options: [next, latest]
+        default: next
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      integrity: ${{ steps.pack.outputs.integrity }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.15.0'
+          package-manager-cache: false
+      - name: Select publishing CLI
+        run: npm install --global npm@11.19.1 --ignore-scripts --no-audit --no-fund
+      - name: Check release identity
+        env:
+          RELEASE_REF: ${{ github.ref }}
+          EXPECTED_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          PUBLISH: ${{ inputs.publish }}
+          PRIVATE_REPOSITORY: ${{ github.event.repository.private }}
+        run: node scripts/check-release.mjs
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: Pack and test the exact artifact
+        id: pack
+        run: node scripts/check-package.mjs
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: npm-package
+          path: release/package.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: verify
+    if: inputs.publish && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.15.0'
+          package-manager-cache: false
+      - name: Select publishing CLI
+        run: npm install --global npm@11.19.1 --ignore-scripts --no-audit --no-fund
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          name: npm-package
+          path: release
+      - name: Check release identity and artifact integrity
+        env:
+          RELEASE_REF: ${{ github.ref }}
+          EXPECTED_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          PUBLISH: 'true'
+          PRIVATE_REPOSITORY: ${{ github.event.repository.private }}
+          EXPECTED_INTEGRITY: ${{ needs.verify.outputs.integrity }}
+        run: |
+          node scripts/check-release.mjs
+          node scripts/check-artifact.mjs
+      - name: Publish verified artifact with OIDC
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: npm publish ./release/package.tgz --ignore-scripts --access public --provenance --tag "$RELEASE_TAG"

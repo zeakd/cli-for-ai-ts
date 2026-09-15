@@ -1,0 +1,19 @@
+{
+  "name": "local-cli",
+  "private": true,
+  "type": "module",
+  "description": "notebook — a local, file-backed note CLI built with the cli-for-ai core and the neverthrow adapter",
+  "bin": {
+    "notebook": "./src/cli.ts"
+  },
+  "scripts": {
+    "dev": "node src/cli.ts"
+  },
+  "dependencies": {
+    "cli-for-ai": "workspace:*",
+    "neverthrow": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.4"
+  }
+}

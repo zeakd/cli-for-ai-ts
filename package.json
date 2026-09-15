@@ -1,0 +1,87 @@
+{
+  "name": "cli-for-ai",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AI-first CLI framework for Node — independent commands in a mixed-depth tree, generated help and programmatic schema descriptions, JSON results and errors as values",
+  "keywords": [
+    "cli",
+    "agents",
+    "ai",
+    "llm",
+    "framework",
+    "schema",
+    "envelope",
+    "typescript"
+  ],
+  "license": "MIT",
+  "author": "zeakd",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zeakd/cli-for-ai-ts.git"
+  },
+  "homepage": "https://github.com/zeakd/cli-for-ai-ts#readme",
+  "bugs": "https://github.com/zeakd/cli-for-ai-ts/issues",
+  "engines": {
+    "node": ">=24"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "default": "./dist/node/index.js"
+    },
+    "./neverthrow": {
+      "types": "./dist/adapters/neverthrow.d.ts",
+      "default": "./dist/adapters/neverthrow.js"
+    },
+    "./effect": {
+      "types": "./dist/adapters/effect.d.ts",
+      "default": "./dist/adapters/effect.js"
+    },
+    "./upgrade": {
+      "types": "./dist/upgrade/index.d.ts",
+      "default": "./dist/upgrade/index.js"
+    },
+    "./lint": {
+      "types": "./dist/lint/index.d.ts",
+      "default": "./dist/lint/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "packageManager": "pnpm@12.4.1",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "pnpm build && tsc --noEmit",
+    "test": "pnpm build && vitest run",
+    "prepack": "pnpm build",
+    "lint": "oxlint"
+  },
+  "peerDependencies": {
+    "neverthrow": "^8.2.0",
+    "effect": "^3.22.2"
+  },
+  "peerDependenciesMeta": {
+    "neverthrow": {
+      "optional": true
+    },
+    "effect": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.4",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0",
+    "oxlint": "^1.82.0",
+    "neverthrow": "^8.2.0",
+    "effect": "^3.22.2"
+  }
+}
