@@ -2,7 +2,7 @@
 // Requires `pnpm build` first (pnpm test runs it).
 
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { afterAll, describe, expect, test } from "vitest";
@@ -116,18 +116,39 @@ await run(app, { context: () => ({}) });
     expect(node(`import { fromNeverthrow } from "cli-for-ai/neverthrow"; console.log(typeof fromNeverthrow)`)).toBe("function\n");
   });
 
-  const tsc = (files: Record<string, string>, types: string[]) => {
+  test("published source maps resolve to included source files", () => {
+    const visit = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) visit(path);
+        else if (entry.name.endsWith(".map")) {
+          const map = JSON.parse(readFileSync(path, "utf8"));
+          for (const source of map.sources) expect(existsSync(resolve(dirname(path), map.sourceRoot ?? "", source)), path).toBe(true);
+        }
+      }
+    };
+    visit(join(installed, "dist"));
+  });
+
+  const tsc = (files: Record<string, string>, types: string[], emitDeclarations = false) => {
     const dir = mkdtempSync(join(consumer, "ts-"));
     for (const [name, text] of Object.entries(files)) writeFileSync(join(dir, name), text);
     writeFileSync(
       join(dir, "tsconfig.json"),
       JSON.stringify({
-        compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext", target: "ES2024", lib: ["ES2024"], strict: true, noEmit: true, skipLibCheck: false, types },
+        compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext", target: "ES2024", lib: ["ES2024"], strict: true, noEmit: !emitDeclarations, declaration: emitDeclarations, emitDeclarationOnly: emitDeclarations, skipLibCheck: false, types },
         include: Object.keys(files),
       }),
     );
     try {
       execFileSync(process.execPath, [join(root, "node_modules/typescript/bin/tsc"), "-p", dir], { cwd: consumer, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+      if (emitDeclarations) {
+        for (const name of Object.keys(files)) {
+          const emitted = readFileSync(join(dir, name.replace(/\.ts$/, ".d.ts")), "utf8");
+          expect(emitted).not.toContain("cli-for-ai/dist/");
+          expect(emitted).not.toContain("node_modules/");
+        }
+      }
       return "";
     } catch (error) {
       return String((error as { stdout?: string }).stdout);
@@ -189,6 +210,24 @@ const unknownInput = command({ summary: "Bad", input: { stdin: { summary: "IDs",
 void [locate, unknownInput];
 `;
     expect(tsc({ "consumer.ts": source }, ["node"])).toBe("");
+  });
+
+  test("consumer modules can emit declarations for exported authoring helpers and commands", () => {
+    expect(tsc({
+      "context.ts": `import { authoring } from "cli-for-ai";
+export interface Context { prefix: string }
+export const command = authoring<Context>().command;
+export const kit = authoring<Context>();
+export const { command: bound } = authoring<Context>();`,
+      "commands.ts": `import { completed, output, payload, records } from "cli-for-ai";
+import { command } from "./context.js";
+export interface CallsData { count: number }
+export const calls = command({ summary: "Calls", output: output<CallsData>(), run: (_input, ctx) => completed({ count: ctx.prefix.length }) });
+export const rows = command({ summary: "Rows", output: payload.jsonl<CallsData>(), run: () => records((async function* () { yield { count: 1 }; })()) });`,
+      "app.ts": `import { application } from "cli-for-ai";
+import { calls, rows } from "./commands.js";
+export const app = application({ name: "demo", version: "1.0.0", summary: "Demo", commands: { calls, rows } });`,
+    }, ["node"], true)).toBe("");
   });
 
   // Each negative compiles in its own process; shared CI runners need more than the unit-test budget.

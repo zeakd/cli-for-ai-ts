@@ -79,3 +79,9 @@ has no active Node handles and the process exits without completing `run`, it th
 does not silently exit 0. This guard does not keep the process alive, force an operation
 to finish, or guarantee an error report. Always await `run`; on Node 24 the provisional
 code can also suppress Node's unsettled top-level-await warning.
+
+### Exporting authoring helpers
+
+`authoring<C>()` returns the public `Authoring<C>` type; its `command` member has type `CommandFactory<C>`. You can export either the helper object or the bound command function from a module that emits declarations. These types can also be imported from `cli-for-ai` for explicit annotations.
+
+When exported commands expose your own named output or context types, export those types from their defining modules too. TypeScript needs to name them when emitting declarations for an application assembled in another module.

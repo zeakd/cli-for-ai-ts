@@ -1,6 +1,6 @@
 {
   "name": "cli-for-ai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "AI-first CLI framework for Node — independent commands in a mixed-depth tree, generated help and programmatic schema descriptions, JSON results and errors as values",
   "keywords": [
@@ -54,6 +54,7 @@
   },
   "files": [
     "dist",
+    "src",
     "README.md"
   ],
   "packageManager": "pnpm@12.4.1",

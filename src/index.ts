@@ -12,6 +12,8 @@ export { authoring, command, dynamicCommand, group, output, AuthoringError } fro
 export { flag, integer, number, positional, stdinJson, stdinText, string } from "./core/helpers.ts";
 export type {
   AnyCommand,
+  Authoring,
+  CommandFactory,
   Command,
   DynamicCommand,
   DynamicCommandSpec,

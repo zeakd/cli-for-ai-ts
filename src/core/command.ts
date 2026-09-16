@@ -305,8 +305,20 @@ export function command(spec: unknown): AnyCommand {
   return declare({ kind: "command", spec: s });
 }
 
+/** A command factory with a bound context, suitable for exported consumer helpers. */
+export interface CommandFactory<C> {
+  <const D extends InputDecl | undefined = {}, A = unknown, O extends OutputDecl<any> | PayloadDecl = OutputDecl<A>>(
+    spec: SpecFor<Present<D>, C, O> & InputPresence<D> & StdinWhenCheck<Present<D>> & InputDeclCheck<Present<D>> & FramingCheck<Present<D>, O>,
+  ): CommandFor<NoInfer<Present<D>>, C, O>;
+}
+
+/** The authoring helpers bound to a context type. */
+export interface Authoring<C> {
+  command: CommandFactory<C>;
+}
+
 /** Binds the context type for commands. It binds nothing else. */
-export function authoring<C>() {
+export function authoring<C>(): Authoring<C> {
   return {
     command<const D extends InputDecl | undefined = {}, A = unknown, O extends OutputDecl<any> | PayloadDecl = OutputDecl<A>>(
       spec: SpecFor<Present<D>, C, O> & InputPresence<D> & StdinWhenCheck<Present<D>> & InputDeclCheck<Present<D>> & FramingCheck<Present<D>, O>,
